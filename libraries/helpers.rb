@@ -30,7 +30,7 @@ module Couchdb
       else
         if body.is_a? Hash
           headers = { 'Content-Type' => 'application/json' }
-          body = JSON.parse(body)
+          body = JSON.generate(body)
         else
           body = "\"#{body}\""
         end
@@ -44,9 +44,11 @@ module Couchdb
         begin
           return http.send(:send_request, *args)
         rescue Errno::ECONNREFUSED, Errno::EHOSTUNREACH
+          Chef::Log.debug('couchdb connection failed')
         end
         sleep 1
       end
+      Chef::Log.debug('failed to connect to couchdb after 5 tries ... failing chef run')
       fail 'unable to connect to couchdb'
     end
 
