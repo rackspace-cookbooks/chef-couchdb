@@ -19,6 +19,18 @@ class Chef
                       default: 5984)
       end
 
+      def admin(arg=nil)
+        set_or_return(:admin,
+                      arg,
+                      kind_of: String)
+      end
+
+      def password(arg=nil)
+        set_or_return(:password,
+                      arg,
+                      kind_of: String)
+      end
+
       def secure(arg=nil)
         set_or_return(:secure,
                       arg,

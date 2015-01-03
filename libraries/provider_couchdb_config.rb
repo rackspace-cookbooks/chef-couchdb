@@ -1,13 +1,15 @@
+## http://docs.couchdb.org/en/latest/config/intro.html
+## http://docs.couchdb.org/en/latest/api/server/configuration.html
 require 'chef/provider'
 require_relative 'helpers'
 
 class Chef
   class Provider
-    class CouchdbDatabase < Chef::Provider::CouchdbBase
+    class CouchdbConfig < Chef::Provider::CouchdbBase
       include Couchdb::Helpers
 
       def load_current_resource
-        @current_resource ||= Chef::Resource::CouchdbDatabase.new(new_resource.name)
+        @current_resource ||= Chef::Resource::CouchdbConfig.new(new_resource.name)
         @current_resource
       end
 
@@ -15,11 +17,12 @@ class Chef
         if exist?
           new_resource.updated_by_last_action false
         else
-          resp = couchdb_put(new_resource.database, host, options)
-          if resp.is_a? Net::HTTPCreated
+          options[:body] = new_resource.value
+          resp = couchdb_put(urn, host, options)
+          if resp.is_a? Net::HTTPOK
             new_resource.updated_by_last_action true
           else
-            fail "Unexpected response code #{resp.code} while creating database #{new_resource.database}"
+            fail "Unexpected response code #{resp.code}"
           end
         end
       end
@@ -38,13 +41,18 @@ class Chef
         end
       end
 
+      def urn
+        return @urn unless @urn.nil?
+        @urn = "_config/#{new_resource.section}/#{new_resource.key}"
+      end
+
       def exist?
-        resp = couchdb_get('_all_dbs', host, options)
+        resp = couchdb_get("_config/#{new_resource.section}", host, options)
         if resp.is_a? Net::HTTPOK
           Chef::Log.debug('recieved a 200 from couchdb server')
           result = JSON.parse(resp.body)
 
-          if result.include? new_resource.database
+          if result == new_resource.value
             return true
           else
             return false

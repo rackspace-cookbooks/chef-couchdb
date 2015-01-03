@@ -4,79 +4,70 @@ require 'net/http'
 
 module Couchdb
   module Helpers
+    @@default_options = {secure: false, port: 5984, verify_ssl: false, body: ''}
+
     ## Options can be body, port, secure, and verify_ssl
-    def query_couchdb(urn, verb, host = '127.0.0.1', options = {})
-      secure = options[:secure] || false
-      port = options[:port] || 5984
-      verify_ssl = options[:verify_ssl] || false
-      body = options[:body] || {}
+    def query_couchdb(urn, verb, host = '127.0.0.1', options = @@default_options)
+      secure = options[:secure] || @@default_options[:secure]
+      body = options[:body] || @@default_options[:body]
 
-      ## Wait for couchdb to become ready
-      unless wait_for_couchdb(host, port)
-        fail "couchdb port: #{port} not open for host: #{host}"
-      end
-
+      ## Set scheme
       scheme = secure ? 'https' : 'http'
+      ## build uri
       url = "#{scheme}://#{host}"
       uri = URI.join(url, urn)
       Chef::Log.debug("query_couchdb built uri: #{uri}")
 
-      http = Net::HTTP.new(uri.host, port)
+      http = Net::HTTP.new(uri.host, options[:port])
       http.use_ssl = secure
-      unless verify_ssl
+      unless options[:verify_ssl] || @@default_options[:verify_ssl]
         Chef::Log.debug('verify_ssl is false setting verify to none')
         http.verify_mode = OpenSSL::SSL::VERIFY_NONE
       end
 
       if body.empty?
-        http.send_request(verb.upcase, uri.request_uri)
+        retry_request(http, verb.upcase, uri.request_uri)
       else
-        http.send_request(verb.upcase,
-                          uri.request_uri,
-                          JSON.generate(body),
-                          'Content-Type' => 'application/json')
+        if body.is_a? Hash
+          headers = { 'Content-Type' => 'application/json' }
+          body = JSON.parse(body)
+        else
+          body = "\"#{body}\""
+        end
+        retry_request(http, verb.upcase, uri.request_uri, body, headers)
       end
     end
 
+    ## Wraps the http send_request in a retry loop
+    def retry_request(http, *args)
+      5.times do
+        begin
+          return http.send(:send_request, *args)
+        rescue Errno::ECONNREFUSED, Errno::EHOSTUNREACH
+        end
+        sleep 1
+      end
+      fail 'unable to connect to couchdb'
+    end
+
     ## Wraps query_couchdb and passes get verb
-    def couchdb_get(urn, host = '127.0.0.1', options = {})
+    def couchdb_get(urn, host = '127.0.0.1', options = @@default_options)
       query_couchdb(urn, 'GET', host, options)
     end
 
     ## Wraps query_couchdb and passes put verb
-    def couchdb_put(urn, host = '127.0.0.1', options = {})
+    def couchdb_put(urn, host = '127.0.0.1', options = @@default_options)
       query_couchdb(urn, 'PUT', host, options)
     end
 
     ## Wraps query_couchdb and passes delete verb
-    def couchdb_delete(urn, host = '127.0.0.1', options = {})
+    def couchdb_delete(urn, host = '127.0.0.1', options = @@default_options)
       query_couchdb(urn, 'DELETE', host, options)
     end
 
     ## Wraps query_couchdb and passes post verb
-    def couchdb_post(urn, host = '127.0.0.1', options = {})
+    def couchdb_post(urn, host = '127.0.0.1', options = @@default_options)
       query_couchdb(urn, 'POST', host, options)
     end
-
-    ## Checks for open port, used for retry
-    ## Wait 5 seconds for port to be open
-    def wait_for_couchdb(host, port)
-      5.times do
-        begin
-          Timeout::timeout(1) do
-            begin
-              s = TCPSocket.new(host, port)
-              s.close
-              return true
-            rescue Errno::ECONNREFUSED, Errno::EHOSTUNREACH
-            end
-          end
-        rescue Timeout::Error
-        end
-        sleep 1
-      end
-      return false
-    end
-
   end
 end
