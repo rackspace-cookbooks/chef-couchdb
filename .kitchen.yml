@@ -3,8 +3,14 @@ driver_plugin: vagrant
 
 platforms:
 - name: centos-5.11
+  run_list:
+  - recipe[yum-epel]
 - name: centos-6.6
+  run_list:
+  - recipe[yum-epel]
 - name: centos-7.0
+  run_list:
+  - recipe[yum-epel]
 - name: ubuntu-12.04
   run_list:
   - recipe[apt]
