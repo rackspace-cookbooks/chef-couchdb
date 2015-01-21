@@ -78,6 +78,7 @@ end
     owner 'couchdb'
     group 'couchdb'
     mode '0770'
+    recursive true
   end
 end
 
