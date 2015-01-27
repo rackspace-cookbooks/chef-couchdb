@@ -28,7 +28,6 @@ dev_pkgs = []
 
 case node['platform_family']
 when 'debian'
-
   dev_pkgs << 'libicu-dev'
   dev_pkgs << 'libcurl4-openssl-dev'
   dev_pkgs << value_for_platform(
@@ -39,7 +38,6 @@ when 'debian'
       'default' => 'libmozjs-dev'
     }
   )
-
 when 'rhel', 'fedora'
   include_recipe 'yum-epel'
 
@@ -93,14 +91,28 @@ template '/usr/local/etc/couchdb/local.ini' do
   notifies :restart, 'service[couchdb]'
 end
 
-cookbook_file '/etc/init.d/couchdb' do
-  source 'couchdb.init'
-  owner 'root'
-  group 'root'
-  mode '0755'
+if node['platform'] == 'ubuntu'
+  template '/etc/init/couchdb.conf' do
+    action :create
+    source 'couchdb.upstart.erb'
+    owner 'root'
+    group 'root'
+    mode '0755'
+    notifies :restart, 'service[couchdb]', :delayed
+  end
+else
+  cookbook_file '/etc/init.d/couchdb' do
+    source 'couchdb.init'
+    owner 'root'
+    group 'root'
+    mode '0755'
+  end
 end
 
 service 'couchdb' do
+  if node['platform'] == 'ubuntu'
+    provider Chef::Provider::Service::Upstart
+  end
   supports [:restart, :status]
   action [:enable, :start]
 end
