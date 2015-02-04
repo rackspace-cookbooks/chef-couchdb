@@ -17,9 +17,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-if node['platform'] == 'ubuntu' && node['platform_version'].to_f == 8.04
-  log "Ubuntu 8.04 does not supply sufficient development libraries via APT to install CouchDB #{node['couch_db']['src_version']} from source."
-  return
+if node['platform_family'] == 'centos' && node['platform_version'].to_f < 6.0
+  Chef::Log.warn('RHEL/CentOS < 6.0 is unsupported by couchdb::source')
 end
 
 couchdb_tar_gz = "apache-couchdb-#{node['couch_db']['src_version']}.tar.gz"
