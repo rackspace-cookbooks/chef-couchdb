@@ -51,7 +51,7 @@ when 'rhel', 'fedora'
   compile_flags = "--with-erlang=/usr/#{bitness}/erlang/usr/include"
 end
 
-include_recipe 'erlang' if node['couch_db']['install_erlang']
+include_recipe 'erlang::esl' if node['couch_db']['install_erlang']
 
 dev_pkgs.each do |pkg|
   package pkg
@@ -62,6 +62,9 @@ ark couchdb_tar_gz do
   checksum node['couch_db']['src_checksum']
   version node['couch_db']['src_vesion']
   action :install_with_make
+  if node['platform_family'] == 'rhel'
+    autoconf_opts [ '--with-erlang=/usr/lib/erlang/usr/include' ]
+  end
 end
 
 user 'couchdb' do
