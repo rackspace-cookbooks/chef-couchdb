@@ -26,6 +26,8 @@ suites:
   run_list:
   - recipe[build-essential]
   - recipe[couchdb::source]
+  excludes:
+  - centos-5.11
   attributes: {}
 - name: resource_provider
   run_list:
