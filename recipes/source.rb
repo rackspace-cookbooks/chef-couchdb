@@ -17,7 +17,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-if node['platform_family'] == 'centos' && node['platform_version'].to_f < 6.0
+if node['platform_family'] == 'rhel' && node['platform_version'].to_f < 6.0
   Chef::Log.warn('RHEL/CentOS < 6.0 is unsupported by couchdb::source')
 end
 
