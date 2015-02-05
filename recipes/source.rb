@@ -61,7 +61,7 @@ ark couchdb_tar_gz do
   checksum node['couch_db']['src_checksum']
   version node['couch_db']['src_vesion']
   action :install_with_make
-  if node['platform_family'] == 'rhel'
+  if node['platform_family'] == 'rhel' && node['couch_db']['install_erlang']
     autoconf_opts [ '--with-erlang=/usr/lib/erlang/usr/include' ]
   end
 end
