@@ -1,3 +1,5 @@
+###This was rewritten and is available at https://github.com/jarosser06/chef-couch
+
 Description
 ===========
 
